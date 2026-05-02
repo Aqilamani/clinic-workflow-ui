@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Force the browser to use the full screen */
+html, body, #root {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevents unwanted scrollbars on the window */
+}
