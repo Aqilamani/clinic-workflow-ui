@@ -1,12 +1,10 @@
 // src/api/stats.js
-// Aggregate counts for sidebar badges and dashboard cards.
+// Aggregate counts and timeseries for the dashboard.
 
 import { supabase } from "../lib/supabase"
 
 // All dashboard stats in one batch.
-// Returns: { active, pending_review, delayed, completed, completed_today, unresolved_flags }
 export async function getDashboardStats() {
-  // Workflow status counts — only select the column we actually need
   const { data: workflows, error: wfError } = await supabase
     .from("workflows")
     .select("status")
@@ -23,16 +21,9 @@ export async function getDashboardStats() {
 
   workflows.forEach((wf) => {
     if (stats[wf.status] !== undefined) stats[wf.status]++
-    // For now: "completed today" mirrors "completed" total. To make this
-    // truly today-only, we'd need to track when the workflow was completed —
-    // either add a workflows.completed_at column, or compute from tasks.
-    // Leaving as-is keeps the schema unchanged.
-    if (wf.status === "completed") {
-      stats.completed_today++
-    }
+    if (wf.status === "completed") stats.completed_today++
   })
 
-  // Unresolved flag count (efficient: head=true means no row data fetched)
   const { count: flagCount, error: flagError } = await supabase
     .from("review_flags")
     .select("*", { count: "exact", head: true })
@@ -47,4 +38,41 @@ export async function getDashboardStats() {
     completed_today: stats.completed_today,
     unresolved_flags: flagCount || 0,
   }
+}
+
+// Daily workflow creation counts for the last N days (inclusive of today).
+// Returns: [{ date: 'Mon', dateFull: '2026-04-26', count: 3 }, ...]
+export async function getWorkflowTrend(days = 7) {
+  const now = new Date()
+  const startDate = new Date(now)
+  startDate.setDate(now.getDate() - (days - 1))
+  startDate.setHours(0, 0, 0, 0)
+
+  const { data, error } = await supabase
+    .from("workflows")
+    .select("created_at")
+    .gte("created_at", startDate.toISOString())
+
+  if (error) throw error
+
+  const buckets = []
+  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate)
+    d.setDate(startDate.getDate() + i)
+    const ymd = d.toISOString().slice(0, 10)
+    buckets.push({
+      dateFull: ymd,
+      date: dayLabels[d.getDay()],
+      count: 0,
+    })
+  }
+
+  data.forEach((wf) => {
+    const ymd = wf.created_at.slice(0, 10)
+    const bucket = buckets.find((b) => b.dateFull === ymd)
+    if (bucket) bucket.count++
+  })
+
+  return buckets
 }

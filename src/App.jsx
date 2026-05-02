@@ -25,12 +25,10 @@ function App() {
   const initialize = useAuthStore((s) => s.initialize);
   const initializeStats = useStatsStore((s) => s.initialize);
 
-  // Restore session on app start
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Initialize stats once we have a session (so RLS lets us read tables)
   useEffect(() => {
     if (session) {
       initializeStats();
@@ -39,8 +37,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+      <div className="min-h-screen w-full bg-stone-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-stone-200 border-t-teal-700 rounded-full animate-spin" />
       </div>
     );
   }
@@ -51,13 +49,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      <div className="flex h-screen overflow-hidden bg-slate-50 min-w-[1024px]">
+      <div className="flex h-screen overflow-hidden bg-stone-50 min-w-[1024px]">
         <Sidebar />
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <Navbar />
 
-          <main className="flex-1 overflow-y-auto p-6 bg-slate-100">
+          <main className="flex-1 overflow-y-auto p-6 bg-stone-50">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
